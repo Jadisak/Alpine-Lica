@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lica Club - Minimal & Modern</title>
+    <!-- Tailwind CSS from CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for a modern look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7fafc;
+        }
+    </style>
+    
+    <!--
+        Moved the JavaScript code to the head to ensure it's loaded before Alpine.js
+        parses the DOM, which fixes the "is not defined" errors.
+    -->
+    <script>
+        // Main Alpine.js data and logic
+        window.mainApp = () => {
+            return {
+                currentPage: 'home',
+                events: [],
+                gallery: [],
+                eventsLoading: true,
+                galleryLoading: true,
+                isModalOpen: false,
+                modalContent: {
+                    title: '',
+                    description: '',
+                    url: '',
+                    date: '',
+                    type: '',
+                },
+
+                init() {
+                    // Simulate API calls for events and gallery data on initialization
+                    setTimeout(() => {
+                        this.events = [
+                            { id: 1, title: 'Minimalist Art Workshop', description: 'Join us for a hands-on session exploring minimalist art techniques. All skill levels welcome.', date: 'Oct 12, 2025' },
+                            { id: 2, title: 'Digital Detox Retreat', description: 'Unplug and reconnect with nature and yourself in this weekend-long retreat.', date: 'Nov 5-7, 2025' },
+                            { id: 3, title: 'Community Meetup', description: 'A casual get-together to chat, share ideas, and build connections.', date: 'Dec 1, 2025' },
+                            { id: 4, title: 'Mindful Morning Walk', description: 'Start your day with a peaceful walk and guided meditation.', date: 'Dec 10, 2025' },
+                        ];
+                        this.eventsLoading = false;
+                    }, 1000); // 1-second delay to simulate network latency
+
+                    setTimeout(() => {
+                        this.gallery = [
+                            { id: 1, url: 'https://placehold.co/800x800/94A3B8/ffffff?text=Image+1', alt: 'A simple image placeholder' },
+                            { id: 2, url: 'https://placehold.co/800x800/A5B4FC/ffffff?text=Image+2', alt: 'A geometric art piece' },
+                            { id: 3, url: 'https://placehold.co/800x800/C7D2FE/ffffff?text=Image+3', alt: 'A clean architectural photo' },
+                            { id: 4, url: 'https://placehold.co/800x800/E0E7FF/ffffff?text=Image+4', alt: 'A minimal landscape' },
+                            { id: 5, url: 'https://placehold.co/800x800/64748B/ffffff?text=Image+5', alt: 'A modern design' },
+                            { id: 6, url: 'https://placehold.co/800x800/93C5FD/ffffff?text=Image+6', alt: 'Abstract art' },
+                        ];
+                        this.galleryLoading = false;
+                    }, 1500); // 1.5-second delay
+                },
+
+                openModal(item, type) {
+                    this.modalContent.title = item.title;
+                    this.modalContent.description = item.description || item.alt; // Use alt text for gallery description
+                    this.modalContent.url = item.url;
+                    this.modalContent.date = item.date;
+                    this.modalContent.type = type;
+                    this.isModalOpen = true;
+                }
+            }
+        }
+
+        // Blog post generation logic (remains unchanged)
+        window.blogApp = () => {
+            return {
+                topic: '',
+                postTitle: '',
+                postContent: '',
+                loading: false,
+                error: null,
+                async generatePost() {
+                    this.error = null;
+                    this.postTitle = '';
+                    this.postContent = '';
+                    if (!this.topic.trim()) {
+                        this.error = 'Please enter a topic to generate a blog post.';
+                        return;
+                    }
+                    this.loading = true;
+
+                    // Gemini API credentials and URL
+                    const apiKey = "";
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+                    const prompt = `Generate a JSON object for a blog post about "${this.topic}". The JSON object should have two keys: "title" (a creative blog post title, max 10 words) and "content" (a single, engaging paragraph of text, max 100 words). The style should be modern, minimalist, and positive.`;
+
+                    const payload = {
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: {
+                             responseMimeType: "application/json",
+                             responseSchema: {
+                                  type: "OBJECT",
+                                  properties: {
+                                      "title": { "type": "STRING" },
+                                      "content": { "type": "STRING" }
+                                  }
+                             }
+                        }
+                    };
+
+                    try {
+                        let response = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`API call failed with status: ${response.status}`);
+                        }
+
+                        const result = await response.json();
+                        const candidate = result?.candidates?.[0];
+                        if (candidate && candidate.content?.parts?.[0]?.text) {
+                            const json = candidate.content.parts[0].text;
+                            const parsedJson = JSON.parse(json);
+                            this.postTitle = parsedJson.title;
+                            this.postContent = parsedJson.content;
+                        } else {
+                            this.error = 'Failed to generate content. Please try again.';
+                        }
+                    } catch (e) {
+                        console.error('API Error:', e);
+                        this.error = 'An error occurred. Please check the console.';
+                    } finally {
+                        this.loading = false;
+                    }
+                }
+            };
+        }
+    </script>
+    <!-- Alpine.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="min-h-screen flex flex-col items-center p-4" x-data="mainApp()">
+
+        <!-- Header and Navigation Bar -->
+        <header class="w-full max-w-5xl bg-white shadow-xl rounded-2xl mb-8">
+            <nav class="flex flex-col sm:flex-row items-center justify-between p-4">
+                <div class="mb-4 sm:mb-0">
+                    <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Lica Club</h1>
+                </div>
+                <div class="flex flex-wrap justify-center sm:space-x-2">
+                    <button @click="currentPage = 'home'" :class="{'bg-gray-900 text-white': currentPage === 'home', 'hover:bg-gray-200': currentPage !== 'home'}" class="px-4 py-2 rounded-xl transition-colors duration-200 text-sm font-medium">Home</button>
+                    <button @click="currentPage = 'about'" :class="{'bg-gray-900 text-white': currentPage === 'about', 'hover:bg-gray-200': currentPage !== 'about'}" class="px-4 py-2 rounded-xl transition-colors duration-200 text-sm font-medium">About</button>
+                    <button @click="currentPage = 'events'" :class="{'bg-gray-900 text-white': currentPage === 'events', 'hover:bg-gray-200': currentPage !== 'events'}" class="px-4 py-2 rounded-xl transition-colors duration-200 text-sm font-medium">Events</button>
+                    <button @click="currentPage = 'gallery'" :class="{'bg-gray-900 text-white': currentPage === 'gallery', 'hover:bg-gray-200': currentPage !== 'gallery'}" class="px-4 py-2 rounded-xl transition-colors duration-200 text-sm font-medium">Gallery</button>
+                    <button @click="currentPage = 'blog'" :class="{'bg-gray-900 text-white': currentPage === 'blog', 'hover:bg-gray-200': currentPage !== 'blog'}" class="px-4 py-2 rounded-xl transition-colors duration-200 text-sm font-medium">Blog</button>
+                    <button @click="currentPage = 'contact'" :class="{'bg-gray-900 text-white': currentPage === 'contact', 'hover:bg-gray-200': currentPage !== 'contact'}" class="px-4 py-2 rounded-xl transition-colors duration-200 text-sm font-medium">Contact</button>
+                </div>
+            </nav>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="w-full max-w-5xl bg-white shadow-xl p-8 rounded-2xl flex-grow">
+
+            <!--
+                HOME PAGE
+                This section contains the content for the 'Home' page.
+                The content is hidden or shown based on the 'currentPage' Alpine.js variable.
+            -->
+            <div x-show="currentPage === 'home'" x-transition:enter.duration.500ms x-transition:leave.duration.500ms>
+                <div class="text-center py-16">
+                    <h2 class="text-4xl font-extrabold text-gray-900 mb-4">Welcome to Lica Club</h2>
+                    <p class="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
+                        Your destination for a minimalist and modern community. Discover our events, connect with members, and embrace simplicity.
+                    </p>
+                    <a href="#" @click.prevent="currentPage = 'events'" class="inline-block px-8 py-3 bg-gray-900 text-white font-semibold rounded-full shadow-lg hover:bg-gray-700 transition-colors duration-200">
+                        Explore Events
+                    </a>
+                </div>
+                <div class="grid md:grid-cols-2 gap-8 mt-12">
+                    <div class="bg-gray-50 rounded-lg p-6">
+                        <h3 class="text-2xl font-bold mb-2">Our Mission</h3>
+                        <p class="text-gray-600">
+                            To create a space where simplicity meets community, fostering meaningful connections in a digital world.
+                        </p>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-6">
+                        <h3 class="text-2xl font-bold mb-2">Upcoming Events</h3>
+                        <ul class="list-disc list-inside text-gray-600">
+                            <li>Minimalist Art Workshop - Oct 12th</li>
+                            <li>Digital Detox Retreat - Nov 5th</li>
+                            <li>Community Meetup - Dec 1st</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!--
+                ABOUT PAGE
+                This section contains the content for the 'About' page.
+            -->
+            <div x-show="currentPage === 'about'" x-transition:enter.duration.500ms x-transition:leave.duration.500ms>
+                <h2 class="text-3xl font-bold mb-4">About Us</h2>
+                <p class="text-lg text-gray-600 mb-4">
+                    Lica Club was founded on the principle that less is more. We believe in fostering a community centered around genuine interaction, shared values, and a focus on what truly matters. We are a collective of individuals who appreciate design, technology, and intentional living.
+                </p>
+                <p class="text-gray-600">
+                    Our team is passionate about creating a platform that is not just a place to visit, but a community to belong to. We regularly host workshops, online meetups, and creative challenges that are designed to inspire and connect.
+                </p>
+            </div>
+
+            <!--
+                EVENTS PAGE
+                This section contains the content for the 'Events' page.
+            -->
+            <div x-show="currentPage === 'events'" x-transition:enter.duration.500ms x-transition:leave.duration.500ms>
+                <h2 class="text-3xl font-bold mb-4">Upcoming Events</h2>
+                <div x-show="eventsLoading" class="text-center text-gray-500 py-12">
+                    <p>Loading events...</p>
+                </div>
+                <div x-show="!eventsLoading" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <template x-for="event in events" :key="event.id">
+                        <div @click="openModal(event, 'event')" class="bg-gray-50 rounded-lg p-6 shadow-sm cursor-pointer hover:shadow-lg transition-shadow duration-200">
+                            <h3 class="text-xl font-semibold mb-2" x-text="event.title"></h3>
+                            <p class="text-gray-600 text-sm" x-text="event.description"></p>
+                            <p class="text-gray-400 text-sm mt-2" x-text="event.date"></p>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!--
+                GALLERY PAGE
+                This section contains the content for the 'Gallery' page.
+            -->
+            <div x-show="currentPage === 'gallery'" x-transition:enter.duration.500ms x-transition:leave.duration.500ms>
+                <h2 class="text-3xl font-bold mb-4">Gallery</h2>
+                <div x-show="galleryLoading" class="text-center text-gray-500 py-12">
+                    <p>Loading gallery images...</p>
+                </div>
+                <div x-show="!galleryLoading" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <template x-for="image in gallery" :key="image.id">
+                        <div @click="openModal(image, 'gallery')" class="bg-gray-200 rounded-lg aspect-square flex items-center justify-center overflow-hidden cursor-pointer hover:shadow-lg transition-shadow duration-200">
+                            <img :src="image.url" :alt="image.alt" class="object-cover w-full h-full rounded-lg transition-transform duration-300 hover:scale-105">
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!--
+                BLOG PAGE
+                This section contains the content for the 'Blog' page.
+            -->
+            <div x-show="currentPage === 'blog'" x-transition:enter.duration.500ms x-transition:leave.duration.500ms x-data="blogApp()">
+                <h2 class="text-3xl font-bold mb-4">Blog</h2>
+                <div class="space-y-6">
+                    <div class="bg-gray-50 rounded-lg p-6 shadow-sm">
+                        <h3 class="text-xl font-semibold mb-2">The Power of Simplicity in Design</h3>
+                        <p class="text-gray-600 text-sm mb-2">
+                            Exploring how stripping away the non-essential can lead to more impactful and beautiful creations.
+                        </p>
+                        <a href="#" class="text-gray-900 font-medium hover:underline text-sm">Read more &rarr;</a>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-6 shadow-sm">
+                        <h3 class="text-xl font-semibold mb-2">Finding Your Focus in a Distracted World</h3>
+                        <p class="text-gray-600 text-sm mb-2">
+                            Tips and tricks for staying present and productive through mindful habits and intentional choices.
+                        </p>
+                        <a href="#" class="text-gray-900 font-medium hover:underline text-sm">Read more &rarr;</a>
+                    </div>
+                </div>
+
+                <!-- AI-Powered Blog Post Generator -->
+                <div class="mt-12 p-6 bg-gray-50 rounded-lg shadow-inner border border-gray-200">
+                    <h3 class="text-2xl font-bold mb-4">Generate a New Blog Post with AI</h3>
+                    <p class="text-gray-600 mb-4">Enter a topic and let our AI generate a blog post title and summary for you.</p>
+                    <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
+                        <input type="text" x-model="topic" placeholder="e.g., The future of minimalist technology" class="flex-grow p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-900">
+                        <button @click="generatePost" :disabled="loading" class="px-6 py-3 bg-gray-900 text-white font-semibold rounded-lg hover:bg-gray-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span x-show="!loading">✨ Generate Blog Post</span>
+                            <span x-show="loading">Generating...</span>
+                        </button>
+                    </div>
+                    <div x-show="error" class="mt-4 text-red-500 font-medium" x-text="error"></div>
+                    <div x-show="postTitle && postContent" class="mt-6 p-6 bg-white rounded-lg border border-gray-200">
+                        <h4 class="text-xl font-bold mb-2" x-text="postTitle"></h4>
+                        <p class="text-gray-600" x-text="postContent"></p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!--
+                CONTACT PAGE
+                This section contains the content for the 'Contact' page.
+            -->
+            <div x-show="currentPage === 'contact'" x-transition:enter.duration.500ms x-transition:leave.duration.500ms>
+                <h2 class="text-3xl font-bold mb-4">Contact</h2>
+                <div class="flex flex-col md:flex-row md:space-x-8 space-y-8 md:space-y-0">
+                    <div class="flex-1">
+                        <p class="text-lg text-gray-600 mb-4">
+                            Have a question or just want to say hi? Fill out the form below or find us on our social channels.
+                        </p>
+                        <form class="space-y-4">
+                            <input type="text" placeholder="Your Name" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-900">
+                            <input type="email" placeholder="Your Email" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-900">
+                            <textarea placeholder="Your Message" rows="4" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-900"></textarea>
+                            <button type="submit" class="w-full px-4 py-3 bg-gray-900 text-white font-semibold rounded-lg hover:bg-gray-700 transition-colors duration-200">
+                                Send Message
+                            </button>
+                        </form>
+                    </div>
+                    <div class="flex-1 bg-gray-50 rounded-lg p-6">
+                        <h3 class="text-xl font-semibold mb-2">Find Us</h3>
+                        <p class="text-gray-600 mb-4">
+                            Lica Club HQ<br>
+                            123 Simplicity Lane<br>
+                            Modern City, 54321
+                        </p>
+                        <ul class="text-gray-600 space-y-2">
+                            <li>Email: contact@licaclub.com</li>
+                            <li>Phone: (555) 123-4567</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Full-screen Modal Component -->
+        <div x-show="isModalOpen"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             @click.outside="isModalOpen = false"
+             class="fixed inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center p-4 z-50">
+            
+            <div @click.stop
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="scale-95 opacity-0"
+                 x-transition:enter-end="scale-100 opacity-100"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="scale-100 opacity-100"
+                 x-transition:leave-end="scale-95 opacity-0"
+                 class="bg-white rounded-xl shadow-2xl p-6 sm:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+
+                <!-- Close Button -->
+                <div class="flex justify-end mb-4">
+                    <button @click="isModalOpen = false" class="text-gray-500 hover:text-gray-700 transition-colors duration-200">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+
+                <!-- Modal Content based on type -->
+                <div class="space-y-4">
+                    <div x-show="modalContent.type === 'gallery'" class="text-center">
+                        <img :src="modalContent.url" :alt="modalContent.description" class="w-full h-auto rounded-xl shadow-md mb-4">
+                        <h3 class="text-2xl font-bold text-gray-800" x-text="modalContent.description"></h3>
+                    </div>
+
+                    <div x-show="modalContent.type === 'event'" class="text-center">
+                        <h3 class="text-2xl font-bold text-gray-800" x-text="modalContent.title"></h3>
+                        <p class="text-sm sm:text-base text-gray-500 font-medium mt-1" x-text="modalContent.date"></p>
+                        <p class="text-base text-gray-700 leading-relaxed mt-4" x-text="modalContent.description"></p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="w-full max-w-5xl text-center mt-8 py-4 text-sm text-gray-500">
+            <p>&copy; 2025 Lica Club. All rights reserved.</p>
+        </footer>
+
+    </div>
+</body>
+</html>

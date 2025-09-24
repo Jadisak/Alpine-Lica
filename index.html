@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lica Club - Minimal & Modern</title>
+    <!-- Tailwind CSS from CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Alpine.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Google Fonts for a modern look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;700&family=Noto+Sans+Thai:wght@100;200;300;400;500;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans Thai', sans-serif;
+            background-image: url('https://www.licaclub.com/wp-content/uploads/2021/12/Lica12-21_0004_76980.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+        /* Custom styles for the modal description */
+        .modal-description {
+            /* max-height: 200px; Limit height for scroll if content is long */
+            overflow-y: auto;
+            padding-right: 10px; /* Space for scrollbar */
+        }
+    </style>
+    <script>
+        // Main Alpine.js data and logic
+        window.mainApp = () => {
+            return {
+                currentPage: 'home',
+                isModalOpen: false,
+                modalContent: {
+                    title: '',
+                    description: '',
+                    date: '',
+                    videoUrl: ''
+                },
+                events: [], // Will be populated in init
+
+                init() {
+                    // Simulate fetching events
+                    setTimeout(() => {
+                        this.events = [
+                            { id: 1, title: 'กิจกรรมวิชาการ 1', date: '2025-10-12', description: 'วิชาการ 1 : การวางแผนการเงินส่วนบุคคล, การลงทุนในสินทรัพย์ต่างๆ, และการบริหารความเสี่ยงเพื่ออนาคตที่มั่นคง. วิทยากรผู้เชี่ยวชาญจะมาให้ความรู้และตอบข้อซักถามอย่างละเอียด.', imageUrl: '/assets/video-1.jpg', videoUrl: 'https://2023-lica-ebook.netlify.app/assets/60thW.webm' },
+                            { id: 2, title: 'กิจกรรมวิชาการ 2', date: '2025-11-05', description: 'วิชาการ 2 : เทคนิคการนำเสนอประกันชีวิตอย่างมืออาชีพ, การสร้างความน่าเชื่อถือ, และการปิดการขายอย่างมีประสิทธิภาพ. พร้อมกรณีศึกษาจากตัวแทนที่ประสบความสำเร็จ.', imageUrl: '/assets/video-2.jpg', videoUrl: 'https://2023-lica-ebook.netlify.app/assets/60thW.webm' },
+                            { id: 3, title: 'กิจกรรมวิชาการ 3', date: '2025-12-01', description: 'วิชาการ 3 : การสร้างความสัมพันธ์กับลูกค้าในระยะยาว, การบริการหลังการขายที่เป็นเลิศ, และการใช้โซเชียลมีเดียเพื่อขยายฐานลูกค้า.', imageUrl: '/assets/video-3.jpg', videoUrl: 'https://2023-lica-ebook.netlify.app/assets/60thW.webm' },
+                            { id: 4, title: 'กิจกรรมวิชาการ 4', date: '2026-01-15', description: 'วิชาการ 4 : กฎหมายและจรรยาบรรณตัวแทนประกันชีวิตที่ควรรู้, การปฏิบัติตามข้อกำหนดของ คปภ., และการหลีกเลี่ยงข้อผิดพลาดทางกฎหมาย.', imageUrl: '/assets/video-4.jpg', videoUrl: 'https://2023-lica-ebook.netlify.app/assets/60thW.webm' },
+                        ];
+                    }, 500); // Small delay
+                },
+
+                openModal(item) {
+                    this.modalContent.title = item.title;
+                    this.modalContent.description = item.description;
+                    this.modalContent.date = item.date;
+                    this.modalContent.videoUrl = item.videoUrl;
+                    this.isModalOpen = true;
+                }
+            }
+        }
+
+        // Blog post generation logic
+        window.blogApp = () => {
+            return {
+                topic: '',
+                postTitle: '',
+                postContent: '',
+                loading: false,
+                error: null,
+                async generatePost() {
+                    this.error = null;
+                    this.postTitle = '';
+                    this.postContent = '';
+                    if (!this.topic.trim()) {
+                        this.error = 'Please enter a topic to generate a blog post.';
+                        return;
+                    }
+                    this.loading = true;
+
+                    // Gemini API credentials and URL (replace with your actual key)
+                    const apiKey = "";
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+                    const prompt = `Generate a JSON object for a blog post about "${this.topic}". The JSON object should have two keys: "title" (a creative blog post title, max 10 words) and "content" (a single, engaging paragraph of text, max 100 words). The style should be modern, minimalist, and positive.`;
+
+                    const payload = {
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: {
+                             responseMimeType: "application/json",
+                             responseSchema: {
+                                  type: "OBJECT",
+                                  properties: {
+                                      "title": { "type": "STRING" },
+                                      "content": { "type": "STRING" }
+                                  }
+                             }
+                        }
+                    };
+
+                    try {
+                        let response = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`API call failed with status: ${response.status}`);
+                        }
+
+                        const result = await response.json();
+                        const candidate = result?.candidates?.[0];
+                        if (candidate && candidate.content?.parts?.[0]?.text) {
+                            const json = candidate.content.parts[0].text;
+                            const parsedJson = JSON.parse(json);
+                            this.postTitle = parsedJson.title;
+                            this.postContent = parsedJson.content;
+                        } else {
+                            this.error = 'Failed to generate content. Please try again.';
+                        }
+                    } catch (e) {
+                        console.error('API Error:', e);
+                        this.error = 'An error occurred. Please check the console.';
+                    } finally {
+                        this.loading = false;
+                    }
+                }
+            };
+        }
+    </script>
+</head>
+<body class="backdrop-blur-sm duration-1000">
+
+    <div class="min-h-screen flex flex-col items-center p-4 pt-8" x-data="mainApp()">
+
+        <!-- Header and Navigation Bar -->
+        <header class="w-full max-w-5xl bg-orange-500/30 border border-orange-300/30 shadow-xl rounded-2xl mb-4 text-gray-100">
+            <nav class="flex flex-col sm:flex-row items-center justify-between md:pl-6 md:pr-10 px-4 pt-2 sm:pt-0" x-data="{ open: false }">
+                <div class="mb-2 sm:mb-0 flex items-center w-full sm:w-auto justify-between">
+                    <div class="flex items-center space-x-4">
+                        <img src="https://www.licaclub.com/wp-content/uploads/2020/01/Logo-2020.png" alt="" class="h-12">
+                        <h1 class="text-2xl font-light text-orange-200 tracking-wide pt-1">สโมสรไลก้า</h1>
+                    </div>
+                    <!-- Hamburger Icon (visible on small screens) -->
+                    <button @click="open = !open" class="sm:hidden ml-2 p-0.5 focus:outline-none focus:ring-2 focus:ring-orange-200/40" aria-label="Open Menu">
+                        <svg x-show="!open" xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-orange-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.2" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                        <svg x-show="open" xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-orange-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <!-- Desktop Nav -->
+                <div class="hidden sm:flex flex-wrap justify-center space-x-2 md:space-x-6 pt-1 text-lg xl:text-xl font-light">
+                    <button @click="currentPage = 'home'" :class="{'hover:border-b-4 border-amber-400 text-white': currentPage === 'home', 'hover:border-b-4 border-orange-400': currentPage !== 'home'}" class="transition-colors duration-200 py-1">Home</button>
+
+                    <button @click="currentPage = 'about'" :class="{'hover:border-b-4 border-amber-400 text-white': currentPage === 'about', 'hover:border-b-4 border-orange-400': currentPage !== 'about'}" 
+                    class="transition-colors duration-200 py-1">About</button>
+
+                    <button @click="currentPage = 'events'" :class="{'hover:border-b-4 border-amber-400 text-white': currentPage === 'events', 'hover:border-b-4 border-orange-400': currentPage !== 'events'}" 
+                    class="transition-colors duration-200 py-1">Events</button>
+
+                    <button @click="currentPage = 'gallery'" :class="{'hover:border-b-4 border-amber-400 text-white': currentPage === 'gallery', 'hover:border-b-4 border-orange-400': currentPage !== 'gallery'}" 
+                    class="transition-colors duration-200 py-1">Gallery</button>
+
+                    <!-- <button @click="currentPage = 'blog'" :class="{'hover:border-b-4 border-amber-400 text-white': currentPage === 'blog', 'hover:border-b-4 border-orange-400': currentPage !== 'blog'}" 
+                    class="transition-colors duration-200 py-1">Blog</button> -->
+
+                    <button @click="currentPage = 'contact'" :class="{'hover:border-b-4 border-amber-400 text-white': currentPage === 'contact', 'hover:border-b-4 border-orange-400': currentPage !== 'contact'}" 
+                    class="transition-colors duration-200 py-1">Contact</button>
+                </div>
+                <!-- Mobile Nav (Hamburger) -->
+                <div 
+                    class="w-full sm:hidden"
+                    x-show="open"
+                    x-transition:enter.duration.300ms
+                    x-transition:leave.duration.200ms
+                    @click.away="open = false"
+                >
+                    <div class="flex-1 space-y-1 mx-auto mt-0 pb-4 bg-yellow-400/0">
+                        <div class="grid grid-cols-3 gap-1">
+                            <button @click="currentPage = 'home'; open = false" :class="{'bg-amber-100/70 text-red-700': currentPage === 'home', 'hover:bg-red-600': currentPage !== 'home'}" 
+                            class="py-2 font-medium text-center col-span-1 bg-yellow-400/30">Home</button>
+                            <button @click="currentPage = 'about'; open = false" :class="{'bg-amber-100/70 text-red-700': currentPage === 'about', 'hover:bg-red-600': currentPage !== 'about'}" 
+                            class="py-2 font-medium text-center col-span-1 bg-yellow-400/30">About</button>
+                            <button @click="currentPage = 'events'; open = false" :class="{'bg-amber-100/70 text-red-700': currentPage === 'events', 'hover:bg-red-600': currentPage !== 'events'}" 
+                            class="py-2 font-medium text-center col-span-1 bg-yellow-400/30">Events</button>
+                        </div>
+                        <div class="grid grid-cols-3 gap-1">
+                            <button @click="currentPage = 'gallery'; open = false" :class="{'bg-amber-100/70 text-red-700': currentPage === 'gallery', 'hover:bg-red-600': currentPage !== 'gallery'}" 
+                            class="py-2 font-medium text-center col-span-1 bg-yellow-400/30">Gallery</button>
+                            <button @click="currentPage = 'blog'; open = false" :class="{'bg-amber-100/70 text-red-700': currentPage === 'blog', 'hover:bg-red-600': currentPage !== 'blog'}" 
+                            class="py-2 font-medium text-cente col-span-1 bg-yellow-400/30">Blog</button>
+                            <button @click="currentPage = 'contact'; open = false" :class="{'bg-amber-100/70 text-red-700': currentPage === 'contact', 'hover:bg-red-600': currentPage !== 'contact'}" 
+                            class="py-2 font-medium text-center col-span-1 bg-yellow-400/30">Contact</button>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="w-full max-w-5xl bg-white/20 backdrop-blur-md border shadow-xl p-4 rounded-2xl flex-grow text-gray-100">
+            <!--
+                HOME PAGE
+                This section contains the content for the 'Home' page.
+                The content is hidden or shown based on the 'currentPage' Alpine.js variable.
+            -->
+            <div x-show="currentPage === 'home'" x-transition:enter.duration.500ms x-transition:leave.duration.500ms>
+                <div class="text-center px-3 py-8 space-y-4 bg-gradient-to-b from-gray-900/90 rounded-lg">
+                    <h2 class="text-5xl font-sans font-bold text-orange-400 uppercase">Lica Club</h2>
+                    <p class="md:text-3xl font-sans text-lg text-gray-100 mb-4 max-w-2xl mx-auto">
+                        LIFE INSURANCE COUNSELLOR ASSOCIATION
+                    </p>
+                    <div class="flex justify-center space-x-2 font-medium py-1">
+                        <a href="#" @click.prevent="currentPage = 'contact'" class="inline-block px-6 pt-2.5 pb-2 h-fit bg-gradient-to-t hover:bg-gradient-to-b from-amber-700 to-yellow-500 text-white tracking-wide rounded-2xl shadow-lg">
+                            สมัครสมาชิกใหม่
+                        </a>
+                        <a href="#" @click.prevent="currentPage = 'gallery'" class="inline-block px-6 pt-2.5 pb-2 h-fit bg-gradient-to-t hover:bg-gradient-to-b from-green-600 to-lime-500 text-white tracking-wide rounded-2xl shadow-lg">
+                            เฉพาะสมาชิก
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 2568 -->
+                <section class="py-6 px-3 md:px-4 relative overflow-hidden">
+                    <div class="mx-auto grid md:max-w-5xl grid-cols-1 items-center x">
+                        <div class="text-white text-center relative w-full">
+                        <div class="text-center right-0 bottom-0 w-full mb-2">
+                            <h1 class="text-2xl px-6 pt-1 md:text-4xl font-medium md:pt-2 md:px-6 mx-auto w-fit rounded-full drop-shadow backdrop-blur-xl"> วิชาการประจำปี 2568 </h1>
+                        </div>
+                        </div>
+                        <img src="https://www.licaclub.com/wp-content/uploads/2025/08/49803.jpeg" alt="" class="max-h-[32rem] z-10 rounded-2xl border-4 md:border-8 border-white mx-auto" />
+                    </div>
+                </section>
+                <!-- 2567 -->
+                <section class="py-6 px-3 md:px-4 relative overflow-hidden">
+                    <div class="mx-auto grid md:max-w-5xl grid-cols-1 items-center x">
+                        <div class="text-white text-center relative w-full">
+                        <div class="text-center right-0 bottom-0 w-full mb-2">
+                            <h1 class="text-2xl px-6 pt-1 md:text-4xl font-medium md:pt-2 md:px-6 mx-auto w-fit rounded-full drop-shadow backdrop-blur-xl"> วิชาการประจำปี 2567 </h1>
+                        </div>
+                        </div>
+                        <img src="https://www.licaclub.com/wp-content/uploads/2024/08/Banner247.jpg" alt="" class="max-h-[32rem] z-10 rounded-2xl border-4 md:border-8 border-white mx-auto" />
+                    </div>
+                </section>
+                <!-- 2566 -->
+                <section class="py-6 px-3 md:px-4 relative overflow-hidden">
+                    <div class="mx-auto grid md:max-w-5xl grid-cols-1 items-center x">
+                        <div class="text-white text-center relative w-full">
+                        <div class="text-center right-0 bottom-0 w-full mb-2">
+                            <h1 class="text-2xl px-6 pt-1 md:text-4xl font-medium md:pt-2 md:px-6 mx-auto w-fit rounded-full drop-shadow backdrop-blur-xl"> วิชาการประจำปี 2566 </h1>
+                        </div>
+                        </div>
+                        <img src="https://www.licaclub.com/wp-content/uploads/2023/09/annual2023.jpg" alt="" class="max-h-[32rem] z-10 rounded-2xl border-4 md:border-8 border-white mx-auto" />
+                    </div>
+                </section>
+                <!-- 2565 -->
+                <section class="py-6 px-3 md:px-4 relative overflow-hidden">
+                    <div class="mx-auto grid md:max-w-5xl grid-cols-1 items-center x">
+                        <div class="text-white text-center relative w-full">
+                        <div class="text-center right-0 bottom-0 w-full mb-2">
+                            <h1 class="text-2xl px-6 pt-1 md:text-4xl font-medium md:pt-2 md:px-6 mx-auto w-fit rounded-full drop-shadow backdrop-blur-xl"> วิชาการประจำปี 2565 </h1>
+                        </div>
+                        </div>
+                        <img src="https://www.licaclub.com/wp-content/uploads/2022/07/licaannual2022.jpg" alt="" class="max-h-[32rem] z-10 rounded-2xl border-4 md:border-8 border-white mx-auto" />
+                    </div>
+                </section>
+            </div>
+
+            <!--
+                ABOUT PAGE
+                This section contains the content for the 'About' page.
+            -->
+            <div x-show="currentPage === 'about'" x-transition:enter.duration.500ms x-transition:leave.duration.500ms>
+                <section class="pt-10 pb-5 px-8 bg-gradient-to-r from-orange-500 via-60% overflow-hidden rounded-t-lg">
+                    <div class="mx-auto max-w-3xl relative">
+                        <div class="z-20">
+                            <h2 class="text-4xl font-medium text-white mb-3 tracking-wide">สโมสรไลก้า</h2>
+                            <div class="border-l-2 border-white text-white px-3 text-sm md:text-base z-20">
+                                <p class="">เรียกเป็นภาษาอังกฤษว่า LICA CLUB</p> 
+                                <p class="">(LIFE INSURANCE COUNSELLOR ASSOCIATION)</p>
+                            </div>
+                        </div>
+                        <div class="w-48 h-48 md:scale-150 duratio-500 absolute -right-20 md:-right-10 -top-10 rounded-full absolute -z-10">
+                            <img src="https://www.licaclub.com/wp-content/uploads/2024/06/logolicaaia-150x150.png" alt="" class="w-full h-full object-contain mx-auto rounded-full brightness-200 -rotate-5 opacity-30">
+                        </div>
+                    </div>
+                </section>
+
+                <section class="py-10 px-2 md:px-8 bg-white">
+                    <div class="mx-auto max-w-3xl relative md:flex-1 space-y-3">
+                        <h2 class="text-4xl font-light text-orange-300 text-center md:text-left mt-0">ประธาน Talks</h2>
+                        <div class="md:w-1/3 relative md:absolute bottom-0 right-0 bg-white">
+                            <img src="https://www.licaclub.com/wp-content/uploads/2020/01/pra-h1.jpg" alt="" class="md:w-full w-3/4 h-fit object-contain border-4 rounded mx-auto px-2 md:px-0" />
+                            <div class="z-10 bg-zinc-700/80 px-3 py-2 w-fit h-fit absolute bottom-6 md:-left-6 left-6 duration-500 text-white flex-1 space-y-1">
+                                <p class="text-lg text-white">สาธิต เลิศวัฒนกูล</p>
+                                <p class="text-sm text-orange-400"> ประธานสโมสรไลก้า 2020</p>
+                            </div>
+                        </div>
+                        <p class="font-light text-xl text-center md:text-left text-orange-500 mt-0">
+                            เราพร้อมที่จะคัดสรร <span class="font-medium text-orange-600"></span> วิชาการ วิทยากร ระดับคุณภาพ<br>มาให้ความรู้กับพลังตัวแทน
+                        </p> 
+                        <p class="text-gray-600 font-light mt-0 md:w-2/3 md:pr-6 md:text-base text-sm text-center md:text-left md:pr-6">
+                            ได้นำไปใช้เพื่อให้เกิดประโยชน์ กับลูกค้า ตัวแทนและบริษัท โดยทางสโมสรสามารถให้ความมั่นใจกับทุกๆ ท่านได้ว่า ธุรกิจการประกันชีวิตในเมืองไทยอยู่ในช่วงการเติบโตอย่างยิ่ง การที่ตัวแทนประกันชีวิตยกระดับคุณภาพขึ้นในทุกๆ ด้าน ทั้งนี้สโมสรไลก้า มีเจตนารมย์ที่แน่วแน่ที่จะเป็นขุมพลังวิชาความรู้ ทั้งเนื้อหาวิชาการ How to แรงบันดาลใจ ซึ่งจะจัดการสัมนาไลก้าเป็นประจำทุกๆ เดือนและสมาชิกสามารถเข้าไปที่ website ของสโมสร Lica “ www.licaclub.com เพื่อรับชมรับฟังวิชาการย้อนหลังได้ตลอดเวลา
+                        </p>
+                        <p class="text-gray-500 font-medium mt- md:w-2/3 md:pr-6 md:text-base text-sm text-center md:text-left">
+                            <span class="text-orange-500">พวกเราสัญญาว่า</span>  จะทำงานหนักที่จะมาพร้อมกับคุณภาพ <br> พร้อมเสริฟให้กับชาวเอไอเอ ที่รักทุกท่านดังสโลแกนสโมสร
+                        </p>
+                        <p class="mt-0 font-medium text-orange-500 text-lg md:w-2/3 text-center md:text-left">
+                            "ประโยชน์สูง ประหยัดสุด ทันยุคทันสมัย“<br> <span class="text-orange-600 font-bold">I Promise (ผมขอให้สัญญา)</span>
+                        </p>
+                    </div>
+                </section>  
+            
+                <section class="md:py-6 py-4 px-8 bg-orange-600">
+                    <div class="mx-auto max-w-3xl mb-4">
+                        <h2 class="text-4xl font-bold text-white mb-3">พ.ศ. 2507</h2>
+                        <div class="border-l-2 border-white px-3">
+                            <p class="text-white md:text-base text-sm font-light">
+                                สโมสรไลก้าเริ่มก่อตั้งเมื่อปี พ.ศ. 2507 โดยผู้บริหารฝ่ายตัวแทนและผู้บริหารหน่วยในสมัยนั้น เริ่มต้นมีสมาชิกมาฟังวิชาการเพียง 10-20 คน โดยมอบหมายให้ผู้บริหารผลัดเปลี่ยนกันมาเป็นผู้ดูแลสโมสร เริ่มมีการแต่งตั้งประธานสโมสรไลก้าอย่างเป็นทางการเมื่อปี พ.ศ. 2511 และในปัจจุบันได้กำหนดวาระการดำรงตำแหน่งของประธานไว้วาระละ 2 ปี
+                            </p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!--
+                EVENTS PAGE
+                This section contains the content for the 'Events' page.
+            -->
+            <div x-show="currentPage === 'events'" x-transition:enter.duration.500ms x-transition:leave.duration.500ms>
+                <h2 class="text-3xl font-normal mb-4">กิจกรรมวิชาการ</h2>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <template x-for="event in events" :key="event.id">
+                        <div @click="openModal(event)" class="h-[300px] rounded-lg overflow-hidden shadow-sm relative cursor-pointer group">
+                            <div class="absolute z-10 flex items-center justify-center w-full h-full drop-shadow transition-transform duration-300 group-hover:scale-110">
+                                <svg xmlns="http://www.w3.org/2000/svg" height="60px" width="60px" viewBox="0 -960 960 960" fill="#ffaa77"><path d="m380-300 280-180-280-180v360ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg>
+                            </div>
+                            <div class="w-full h-fit backdrop-blur-md bg-amber-500/70 px-3 py-2 space-y-1 absolute bottom-0 right-0 text-white z-10">
+                                <h3 class="text-xl font-medium" x-text="event.title"></h3>
+                                <p class="font-extralight" x-text="event.date"></p>
+                            </div>
+                            <img :src="event.imageUrl" :alt="event.title" class="h-full w-full rounded-lg object-center object-cover z-0 transition-transform duration-300 group-hover:scale-110">
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!--
+                GALLERY PAGE
+                This section contains the content for the 'Gallery' page.
+            -->
+            <div x-show="currentPage === 'gallery'" x-transition:enter.duration.500ms x-transition:leave.duration.500ms>
+                <h2 class="text-3xl font-bold mb-4">E-BOOK</h2>
+                <section class="pb-16 px-2 relative overflow-hidden">
+
+                <div class="w-full h-full overflow-hidden">
+                    <div class="z-10 relative">
+                        <div class="mx-auto grid max-w-5xl grid-cols-1 place-content-center z-10 relative">
+                            <p class="p-4 w-fit absolute scale-75 md:scale-100 bottom-4 right-10 md:bottom-32 md:right-52 bg-black/80 hover:bg-pink-600 duration-700 text-white"> 
+                            <a href="https://lica2024.netlify.app/mobile/index.html" target="_blank">E-Book 2024</a></p>
+                            <img src="/assets/BookShelf-2024.png" alt="" class="max-h-[32rem] rounded-2xl mx-auto" />
+                        </div>
+                        <div class="mx-auto grid max-w-5xl grid-cols-1 place-content-center z-10 relative">
+                            <p class="p-4 w-fit absolute scale-75 md:scale-100 bottom-4 right-10 md:bottom-32 md:right-52 bg-black/80 hover:bg-pink-600 duration-700 text-white"> 
+                            <a href="https://lica2024.netlify.app/mobile/index.html" target="_blank">E-Book 2023</a></p>
+                            <img src="https://www.licaclub.com/wp-content/uploads/2024/06/Book-Covers-LICA2023.png" alt="" class="max-h-[32rem] rounded-2xl mx-auto" />
+                        </div>
+                        <div class="mx-auto grid max-w-5xl grid-cols-1 place-content-center z-10 relative">
+                            <p class="p-4 w-fit absolute scale-75 md:scale-100 bottom-4 right-10 md:bottom-32 md:right-52 bg-black/80 hover:bg-pink-600 duration-700 text-white"> 
+                            <a href="https://lica2024.netlify.app/mobile/index.html" target="_blank">E-Book 2022</a></p>
+                            <img src="https://www.licaclub.com/wp-content/uploads/2023/05/Book-Covers-LICA2022.png" alt="" class="max-h-[32rem] rounded-2xl mx-auto" />
+                        </div>
+                        <div class="mx-auto grid max-w-5xl grid-cols-1 place-content-center z-10 relative">
+                            <p class="p-4 w-fit absolute scale-75 md:scale-100 bottom-4 right-10 md:bottom-32 md:right-52 bg-black/80 hover:bg-pink-600 duration-700 text-white"> 
+                            <a href="https://lica2024.netlify.app/mobile/index.html" target="_blank">E-Book 2021</a></p>
+                            <img src="https://www.licaclub.com/wp-content/uploads/2022/03/Book-Covers-LICA2021.png" alt="" class="max-h-[32rem] rounded-2xl mx-auto" />
+                        </div>
+                    </div>
+                </div>
+                </section>
+            </div>
+
+            <!--
+                BLOG PAGE
+                This section contains the content for the 'Blog' page.
+            -->
+            <div x-show="currentPage === 'blog'" x-transition:enter.duration.500ms x-transition:leave.duration.500ms x-data="blogApp()">
+                <h2 class="text-3xl font-bold mb-4">Blog</h2>
+                <div class="space-y-6">
+                    <div class="bg-gray-50 rounded-lg p-6 shadow-sm">
+                        <h3 class="text-xl text-orange-500 font-semibold mb-2">The Power of Simplicity in Design</h3>
+                        <p class="text-gray-600 text-sm mb-2">
+                            Exploring how stripping away the non-essential can lead to more impactful and beautiful creations.
+                        </p>
+                        <a href="#" class="text-gray-900 font-medium hover:underline text-sm">Read more &rarr;</a>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-6 shadow-sm">
+                        <h3 class="text-xl text-orange-500 font-semibold mb-2">Finding Your Focus in a Distracted World</h3>
+                        <p class="text-gray-600 text-sm mb-2">
+                            Tips and tricks for staying present and productive through mindful habits and intentional choices.
+                        </p>
+                        <a href="#" class="text-gray-900 font-medium hover:underline text-sm">Read more &rarr;</a>
+                    </div>
+                </div>
+                <!-- AI-Powered Blog Post Generator -->
+                <div class="mt-6 p-6 bg-gray-50 rounded-lg shadow-inner border-2 border-red-600/40">
+                    <h3 class="text-2xl text-orange-500 font-bold mb-4">Generate a New Blog Post with AI</h3>
+                    <p class="text-gray-600 mb-4">Enter a topic and let our AI generate a blog post title and summary for you.</p>
+                    <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
+                        <input type="text" x-model="topic" placeholder="e.g., The future of minimalist technology" class="flex-grow p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-900">
+                        <button @click="generatePost" :disabled="loading" class="px-6 py-3 bg-gray-900 text-orange-600 font-semibold rounded-lg hover:bg-gray-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span x-show="!loading">✨ Generate Blog Post</span>
+                            <span x-show="loading">Generating...</span>
+                        </button>
+                    </div>
+                    <!-- FIX: Use x-show="error !== null" to avoid Alpine error -->
+                    <div x-show="error !== null" class="mt-4 text-red-500 font-medium py-1" x-text="error"></div>
+                    <div x-show="postTitle && postContent" class="mt-6 p-6 bg-white rounded-lg border border-red-600">
+                        <h4 class="text-xl font-bold mb-2" x-text="postTitle"></h4>
+                        <p class="text-gray-600" x-text="postContent"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!--
+                CONTACT PAGE
+                This section contains the content for the 'Contact' page.
+            -->
+            <div x-show="currentPage === 'contact'" x-transition:enter.duration.500ms x-transition:leave.duration.500ms>
+                <section class="text-gray-60 h-fit">
+                    <div class="bg-white h-fit p-6 overflow-hidden relative">
+                        <div class="absolute opacity-10 -rotate-12 md:right-12 -right-6 -top-12 bg-cover w-64 h-64 bg-[url('https://www.licaclub.com/wp-content/uploads/2020/01/Logo-2020.png')]"></div>
+                        <h2 class="text-2xl text-orange-500 font-bold">ที่ตั้งสโมสรไลก้า</h2>
+                        <div class="flex-1 md:flex-row md:text-lg text-sm space-y-4 md:space-y-0">
+                            <p class="text-gray-600">
+                                138 อาคาร JCB ชั้น G ห้อง 101 ถนนนเรศ บางรัก
+                                <span class="md:inline-block lg:hidden">&nbsp;<br></span>
+                                กรุงเทพมหานคร 10500
+                            </p>
+                            <p class="text-gray-600">
+                                โทร.
+                                <span class="text-orange-500"> 02 238 4637</span>
+                                <span class="md:inline-block lg:hidden">&nbsp;<br></span>
+                                email: 
+                                <span class="text-orange-500">
+                                lica.club@gmail.com</span> 
+                            </p>
+                        </div>
+                    </div>
+                    <div class="py-1 mx-auto flex flex-col sm:flex-row sm:gap-x-1">
+                        <div class="lg:w-2/3 md:w-1/2 h-[300px] md:h-[600px] bg-gray-300 overflow-hidden border relative">
+                            <iframe width="100%" height="100%" class="absolute inset-0" frameborder="4" title="map" marginheight="0" marginwidth="0" scrolling="no" src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d1937.9112984270218!2d100.523472!3d13.729188!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x30e298d6a94eaa21%3A0x5539808461714937!2sJewellery%20Center%20Building!5e0!3m2!1sen!2sus!4v1757911818591!5m2!1sen!2sus" ></iframe>
+                        </div>
+                        <div class="lg:w-1/3 md:w-1/2 bg-white flex flex-col md:ml-auto w-full md:py-8 mt-2 md:mt-0 p-4">
+                            <h2 class="text-orange-500 text-2xl mb-1 font-medium title-font">ติดต่อสอบถาม</h2>
+                            <div class="relative mb-4">
+                                <label for="name" class="leading-7 text-sm text-gray-600">ชื่อ-นามสกุล</label>
+                                <input type="text" id="name" name="name" class="w-full bg-white rounded border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-base outline-none text-gray-700 py-1 px-3 leading-8 transition-colors duration-200 ease-in-out">
+                            </div>
+                            <div class="relative mb-4">
+                                <label for="email" class="leading-7 text-sm text-gray-600">อีเมล์</label>
+                                <input type="email" id="email" name="email" class="w-full bg-white rounded border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-base outline-none text-gray-700 py-1 px-3 leading-8 transition-colors duration-200 ease-in-out">
+                            </div>
+                            <div class="relative mb-4">
+                                <label for="phone" class="leading-7 text-sm text-gray-600">เบอร์โทรศัพท์</label>
+                                <input type="phone" id="phone" name="phone" class="w-full bg-white rounded border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-base outline-none text-gray-700 py-1 px-3 leading-8 transition-colors duration-200 ease-in-out">
+                            </div>
+                            <div class="relative mb-4">
+                                <label for="message" class="leading-7 text-sm text-gray-600">ข้อความ</label>
+                                <textarea id="message" name="message" class="w-full bg-white rounded border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 h-32 text-base outline-none text-gray-700 py-1 px-3 resize-none leading-6 transition-colors duration-200 ease-in-out"></textarea>
+                            </div>
+                            <button class="text-white bg-orange-500 border-0 py-2 px-6 focus:outline-none hover:bg-red-600 rounded text-lg uppercase">send message</button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- Full-screen Modal Component
+             class="fixed inset-0 bg-gray-900/70 flex sm:items-center justify-center p-4 z-50" -->
+        <div x-show="isModalOpen"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             @click.outside="isModalOpen = false"
+             @keydown.escape.window="isModalOpen = false"
+             class="fixed inset-0 bg-gray-900/70 flex items-start justify-center pt-32 z-50"
+             style="display: none;">
+            
+            <div @click.stop
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="scale-95 opacity-0"
+                 x-transition:enter-end="scale-100 opacity-100"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="scale-100 opacity-100"
+                 x-transition:leave-end="scale-95 opacity-0"
+                 class="bg-white rounded-xl shadow-2xl p-4 sm:p-6 max-w-4xl w-full max-h-[90vh] flex flex-col">
+
+                <!-- Header with Title and Close Button -->
+                <div class="flex justify-between items-center mb-4 text-gray-800">
+                    <div>
+                        <h3 class="text-2xl font-bold" x-text="modalContent.title"></h3>
+                        <p class="text-sm text-gray-500" x-text="modalContent.date"></p>
+                    </div>
+                    <button @click="isModalOpen = false" class="text-orange-500 hover:bg-gray-500 p-0.5 transition-colors duration-200">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+
+                <!-- Modal Content (Video) -->
+                <div class="aspect-video w-full">
+                    <iframe class="w-full h-full rounded-lg" :src="modalContent.videoUrl" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                </div>
+                <div x-show="modalContent.description" class="mt-4 text-orange-500 modal-description">
+                    <p x-text="modalContent.description"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="w-full max-w-5xl text-center mt-8 py-4 text-sm text-gray-100">
+            <p>&copy; 2025 Lica Club. All rights reserved.</p>
+        </footer>
+
+    </div>
+</body>
+</html>
